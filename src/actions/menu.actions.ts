@@ -1,11 +1,11 @@
 'use server';
 
-export async function createMenu() {}
+export async function createMenu(): Promise<void> {}
 
-export async function updateMenu() {}
+export async function updateMenu(): Promise<void> {}
 
-export async function publishMenu() {}
+export async function publishMenu(): Promise<void> {}
 
-export async function addMenuItem(menuId: string, itemId: string) {}
+export async function addMenuItem(): Promise<void> {}
 
-export async function removeMenuItem(menuId: string, itemId: string) {}
+export async function removeMenuItem(): Promise<void> {}

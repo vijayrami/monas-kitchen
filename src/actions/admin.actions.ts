@@ -1,5 +1,5 @@
 'use server';
 
-export async function updateOrderStatus(orderId: string, status: string) {}
+export async function updateOrderStatus(): Promise<void> {}
 
-export async function deleteMenuItem(itemId: string) {}
+export async function deleteMenuItem(): Promise<void> {}
