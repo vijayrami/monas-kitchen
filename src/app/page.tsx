@@ -1,7 +1,8 @@
+import { Suspense } from 'react';
+import { connection } from 'next/server';
+
 import { getMenuItems } from '@/lib/menu';
 import type { MealType } from '@/types/menu';
-
-export const instant = false;
 
 const mealSections: Array<{
     type: MealType;
@@ -21,7 +22,9 @@ const mealSections: Array<{
     },
 ];
 
-export default async function HomePage() {
+async function MenuContent() {
+    await connection();
+
     const menuItems = await getMenuItems();
 
     return (
@@ -95,5 +98,23 @@ export default async function HomePage() {
                 })}
             </div>
         </main>
+    );
+}
+
+function MenuFallback() {
+    return (
+        <main className="mx-auto max-w-6xl px-6 py-10">
+            <p className="text-center text-gray-500">
+                Loading today's menu...
+            </p>
+        </main>
+    );
+}
+
+export default function HomePage() {
+    return (
+        <Suspense fallback={<MenuFallback />}>
+            <MenuContent />
+        </Suspense>
     );
 }

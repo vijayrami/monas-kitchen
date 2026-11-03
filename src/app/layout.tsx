@@ -5,8 +5,6 @@ import { Header } from '@/components/layout/header';
 
 import './globals.css';
 
-export const instant = false;
-
 export const metadata: Metadata = {
     title: "Mona's Kitchen",
     description: 'Fresh, homemade food for your society.',
