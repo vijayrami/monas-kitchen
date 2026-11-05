@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { logout } from '@/actions/auth.actions';
 import { createClient } from '@/lib/supabase/server';
+import { CartHeaderLink } from '@/components/cart/cart-header-link';
 
 export async function Header() {
     await connection();
@@ -30,21 +31,23 @@ export async function Header() {
 
     return (
         <header className="border-b bg-white">
-            <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+            <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
                 <Link
                     href="/"
-                    className="text-xl font-bold text-orange-600"
+                    className="shrink-0 text-xl font-bold text-orange-600"
                 >
                     Mona&apos;s Kitchen
                 </Link>
 
-                <nav className="flex items-center gap-4 text-sm">
+                <nav className="flex flex-wrap items-center justify-end gap-3 text-sm sm:gap-4">
                     <Link
                         href="/menu"
                         className="hover:text-orange-600"
                     >
                         Menu
                     </Link>
+
+                    <CartHeaderLink />
 
                     {user ? (
                         <>
@@ -57,7 +60,7 @@ export async function Header() {
 
                             <Link
                                 href="/profile"
-                                className="hover:text-orange-600"
+                                className="max-w-28 truncate hover:text-orange-600 sm:max-w-none"
                             >
                                 {profile?.full_name || 'Profile'}
                             </Link>
