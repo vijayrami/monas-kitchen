@@ -1,7 +1,7 @@
 import { connection } from 'next/server';
 import Link from 'next/link';
 
-import { logout } from '@/actions/auth.actions';
+import { LogoutButton } from '@/components/layout/logout-button';
 import { createClient } from '@/lib/supabase/server';
 import { CartHeaderLink } from '@/components/cart/cart-header-link';
 
@@ -74,14 +74,7 @@ export async function Header() {
                                 </Link>
                             )}
 
-                            <form action={logout}>
-                                <button
-                                    type="submit"
-                                    className="rounded-lg border px-3 py-2 hover:bg-gray-50"
-                                >
-                                    Logout
-                                </button>
-                            </form>
+                            <LogoutButton />
                         </>
                     ) : (
                         <>
