@@ -37,6 +37,8 @@ export interface CartContextType {
     subtotal: number;
     itemCount: number;
     isHydrated: boolean;
+    
+    resetCartOnLogout: () => void;
 
     addBreakfastItem: (
         item: Omit<CartBreakfastItem, 'quantity'> & { quantity?: number }

@@ -329,6 +329,15 @@ export function CartProvider({ children }: CartProviderProps) {
         }));
     }, []);
 
+    const resetCartOnLogout = useCallback(() => {
+        currentUserId.current = null;
+
+        setCart(createEmptyCart(getTodayDate()));
+        setUserId(null);
+        setIsHydrated(false);
+        setHydratedStorageKey(null);
+    }, []);
+
     const subtotal = useMemo(
         () => calculateCartSubtotal(cart),
         [cart]
@@ -356,6 +365,7 @@ export function CartProvider({ children }: CartProviderProps) {
             setDeliveryType,
             setNotes,
             clearCart,
+            resetCartOnLogout,
         }),
         [
             cart,
@@ -373,6 +383,7 @@ export function CartProvider({ children }: CartProviderProps) {
             setDeliveryType,
             setNotes,
             clearCart,
+            resetCartOnLogout,
         ]
     );
 

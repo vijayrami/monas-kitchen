@@ -3,10 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { useCart } from '@/hooks/use-cart';
 import { createClient } from '@/lib/supabase/client';
 
 export function LogoutButton() {
     const router = useRouter();
+    const { resetCartOnLogout } = useCart();
+
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [error, setError] = useState('');
 
@@ -23,6 +26,9 @@ export function LogoutButton() {
             setIsLoggingOut(false);
             return;
         }
+
+        // Clear the active cart without deleting the saved customer cart.
+        resetCartOnLogout();
 
         router.replace('/login');
         router.refresh();
