@@ -1,10 +1,13 @@
 'use client';
 
+import { createClient } from '@/lib/supabase/client';
+
 import {
     createContext,
     useCallback,
     useEffect,
     useMemo,
+    useRef,
     useState,
     type ReactNode,
 } from 'react';
@@ -36,48 +39,106 @@ interface CartProviderProps {
 export function CartProvider({ children }: CartProviderProps) {
     const [cart, setCart] = useState<CustomerCart>(() => createEmptyCart());
     const [isHydrated, setIsHydrated] = useState(false);
+    const [userId, setUserId] = useState<string | null>(null);
+    const [isAuthResolved, setIsAuthResolved] = useState(false);
+    const [hydratedStorageKey, setHydratedStorageKey] = useState<string | null>(
+        null
+    );
+
+    const supabase = useMemo(() => createClient(), []);
+    const currentUserId = useRef<string | null | undefined>(undefined);
+
+    const storageKey = `${CART_STORAGE_KEY}:${userId ?? 'guest'}`;
 
     useEffect(() => {
+        let isMounted = true;
+
+        const updateAuthenticatedUser = (nextUserId: string | null) => {
+            if (!isMounted || currentUserId.current === nextUserId) {
+                return;
+            }
+
+            currentUserId.current = nextUserId;
+
+            setUserId(nextUserId);
+            setCart(createEmptyCart());
+            setIsHydrated(false);
+            setHydratedStorageKey(null);
+        };
+
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            updateAuthenticatedUser(session?.user.id ?? null);
+            setIsAuthResolved(true);
+        });
+
+        void supabase.auth.getUser().then(({ data: { user } }) => {
+            updateAuthenticatedUser(user?.id ?? null);
+            setIsAuthResolved(true);
+        });
+
+        return () => {
+            isMounted = false;
+            subscription.unsubscribe();
+        };
+    }, [supabase]);
+
+    useEffect(() => {
+        if (!isAuthResolved) {
+            return;
+        }
+
         try {
-            const storedCart = localStorage.getItem(CART_STORAGE_KEY);
+            // Remove the old shared cart key to prevent cross-account exposure.
+            localStorage.removeItem(CART_STORAGE_KEY);
+
+            const storedCart = localStorage.getItem(storageKey);
 
             if (storedCart) {
                 const parsedCart: unknown = JSON.parse(storedCart);
                 const normalizedCart = normalizeCart(parsedCart);
 
                 if (normalizedCart) {
-                    // Restore persisted cart during browser hydration.
                     // eslint-disable-next-line react-hooks/set-state-in-effect
                     setCart(normalizedCart);
                 } else {
-                    // Initialize a fresh cart when stored data is invalid.
+                    localStorage.removeItem(storageKey);
                     setCart(createEmptyCart(getTodayDate()));
                 }
             } else {
-                // Calculate today's date only in the browser.
                 setCart(createEmptyCart(getTodayDate()));
             }
         } catch {
-            localStorage.removeItem(CART_STORAGE_KEY);
-
-            // Initialize a fresh cart after a storage/parsing failure.
+            localStorage.removeItem(storageKey);
             setCart(createEmptyCart(getTodayDate()));
         } finally {
+            setHydratedStorageKey(storageKey);
             setIsHydrated(true);
         }
-    }, []);
+    }, [isAuthResolved, storageKey]);
 
     useEffect(() => {
-        if (!isHydrated) {
+        if (
+            !isAuthResolved ||
+            !isHydrated ||
+            hydratedStorageKey !== storageKey
+        ) {
             return;
         }
 
         try {
-            localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+            localStorage.setItem(storageKey, JSON.stringify(cart));
         } catch {
             // Storage may be unavailable or full.
         }
-    }, [cart, isHydrated]);
+    }, [
+        cart,
+        isAuthResolved,
+        isHydrated,
+        hydratedStorageKey,
+        storageKey,
+    ]);
 
     const addBreakfastItem = useCallback(
         (
