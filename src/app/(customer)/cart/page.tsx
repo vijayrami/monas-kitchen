@@ -1,5 +1,11 @@
-import { PlaceholderPage } from '@/components/layout/placeholder-page';
+import { Suspense } from 'react';
+
+import { CartPageContent } from '@/components/cart/cart-page-content';
 
 export default function CartPage() {
-    return <PlaceholderPage title="Cart" />;
+    return (
+        <Suspense fallback={<p>Loading cart...</p>}>
+            <CartPageContent />
+        </Suspense>
+    );
 }
