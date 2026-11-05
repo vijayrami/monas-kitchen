@@ -50,31 +50,30 @@ export function CartProvider({ children }: CartProviderProps) {
 
     const storageKey = `${CART_STORAGE_KEY}:${userId ?? 'guest'}`;
 
+    /**
+     * Synchronize the cart with Supabase authentication.
+     */
     useEffect(() => {
         let isMounted = true;
-
-        const updateAuthenticatedUser = (nextUserId: string | null) => {
-            if (!isMounted || currentUserId.current === nextUserId) {
-                return;
-            }
-
-            currentUserId.current = nextUserId;
-
-            setUserId(nextUserId);
-            setCart(createEmptyCart());
-            setIsHydrated(false);
-            setHydratedStorageKey(null);
-        };
 
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((_event, session) => {
-            updateAuthenticatedUser(session?.user.id ?? null);
-            setIsAuthResolved(true);
-        });
+            if (!isMounted) {
+                return;
+            }
 
-        void supabase.auth.getUser().then(({ data: { user } }) => {
-            updateAuthenticatedUser(user?.id ?? null);
+            const nextUserId = session?.user.id ?? null;
+
+            if (currentUserId.current !== nextUserId) {
+                currentUserId.current = nextUserId;
+
+                setUserId(nextUserId);
+                setCart(createEmptyCart());
+                setIsHydrated(false);
+                setHydratedStorageKey(null);
+            }
+
             setIsAuthResolved(true);
         });
 
@@ -84,43 +83,68 @@ export function CartProvider({ children }: CartProviderProps) {
         };
     }, [supabase]);
 
+    /**
+     * Load the cart belonging to the authenticated customer.
+     */
     useEffect(() => {
         if (!isAuthResolved) {
             return;
         }
 
-        try {
-            // Remove the old shared cart key to prevent cross-account exposure.
-            localStorage.removeItem(CART_STORAGE_KEY);
+        let isActive = true;
 
-            const storedCart = localStorage.getItem(storageKey);
+        const loadCart = async () => {
+            // Defer state updates until the effect has completed.
+            await Promise.resolve();
 
-            if (storedCart) {
-                const parsedCart: unknown = JSON.parse(storedCart);
-                const normalizedCart = normalizeCart(parsedCart);
+            let nextCart = createEmptyCart(getTodayDate());
 
-                if (normalizedCart) {
-                    // eslint-disable-next-line react-hooks/set-state-in-effect
-                    setCart(normalizedCart);
-                } else {
-                    localStorage.removeItem(storageKey);
-                    setCart(createEmptyCart(getTodayDate()));
+            try {
+                // Remove the legacy shared cart.
+                localStorage.removeItem(CART_STORAGE_KEY);
+
+                // Guest users must never access customer carts.
+                if (userId) {
+                    const storedCart = localStorage.getItem(storageKey);
+
+                    if (storedCart) {
+                        const parsedCart: unknown = JSON.parse(storedCart);
+                        const normalizedCart = normalizeCart(parsedCart);
+
+                        if (normalizedCart) {
+                            nextCart = normalizedCart;
+                        } else {
+                            localStorage.removeItem(storageKey);
+                        }
+                    }
                 }
-            } else {
-                setCart(createEmptyCart(getTodayDate()));
+            } catch {
+                nextCart = createEmptyCart(getTodayDate());
             }
-        } catch {
-            localStorage.removeItem(storageKey);
-            setCart(createEmptyCart(getTodayDate()));
-        } finally {
+
+            if (!isActive) {
+                return;
+            }
+
+            setCart(nextCart);
             setHydratedStorageKey(storageKey);
             setIsHydrated(true);
-        }
-    }, [isAuthResolved, storageKey]);
+        };
 
+        void loadCart();
+
+        return () => {
+            isActive = false;
+        };
+    }, [isAuthResolved, storageKey, userId]);
+
+    /**
+     * Persist the cart only for an authenticated customer.
+     */
     useEffect(() => {
         if (
             !isAuthResolved ||
+            !userId ||
             !isHydrated ||
             hydratedStorageKey !== storageKey
         ) {
@@ -135,6 +159,7 @@ export function CartProvider({ children }: CartProviderProps) {
     }, [
         cart,
         isAuthResolved,
+        userId,
         isHydrated,
         hydratedStorageKey,
         storageKey,
@@ -167,14 +192,14 @@ export function CartProvider({ children }: CartProviderProps) {
                             existing =>
                                 existing.menuItemId === item.menuItemId
                                     ? {
-                                        ...existing,
-                                        quantity: Math.min(
-                                            existing.quantity + quantityToAdd,
-                                            20
-                                        ),
-                                        name: item.name,
-                                        displayedPrice: item.displayedPrice,
-                                    }
+                                          ...existing,
+                                          quantity: Math.min(
+                                              existing.quantity + quantityToAdd,
+                                              20
+                                          ),
+                                          name: item.name,
+                                          displayedPrice: item.displayedPrice,
+                                      }
                                     : existing
                         ),
                     };
