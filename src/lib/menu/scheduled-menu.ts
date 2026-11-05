@@ -152,3 +152,45 @@ export function hasCompleteMealComponents(
         return typeof value === 'string' && value.trim().length >= 2;
     });
 }
+
+export async function getPublishedScheduledMenuByDate(
+    menuDate: string,
+): Promise<ScheduledMenu | null> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+        .from('menu_days')
+        .select(`
+            id,
+            menu_date,
+            is_published,
+            daily_meal_packages (
+                id,
+                meal_type,
+                regular_price,
+                special_price,
+                daily_meal_components (
+                    component_type,
+                    item_name
+                )
+            )
+        `)
+        .eq('menu_date', menuDate)
+        .eq('is_published', true)
+        .maybeSingle();
+
+    if (error) {
+        throw new Error('Unable to load the published daily menu.');
+    }
+
+    if (!data) {
+        return null;
+    }
+
+    return {
+        id: data.id,
+        menu_date: data.menu_date,
+        is_published: data.is_published,
+        meals: (data.daily_meal_packages ?? []).map(mapMealPackage),
+    };
+}

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
 import { Header } from '@/components/layout/header';
+import { CartProvider } from '@/components/providers/cart-provider';
 
 import './globals.css';
 
@@ -32,11 +33,13 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body>
-                <Suspense fallback={<HeaderFallback />}>
-                    <Header />
-                </Suspense>
+                <CartProvider>
+                    <Suspense fallback={<HeaderFallback />}>
+                        <Header />
+                    </Suspense>
 
-                {children}
+                    {children}
+                </CartProvider>
             </body>
         </html>
     );

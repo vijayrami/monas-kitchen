@@ -105,7 +105,7 @@ function MenuFallback() {
     return (
         <main className="mx-auto max-w-6xl px-6 py-10">
             <p className="text-center text-gray-500">
-                Loading today's menu...
+                Loading today&apos;s menu...
             </p>
         </main>
     );
